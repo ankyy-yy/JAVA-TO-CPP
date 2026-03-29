@@ -1,0 +1,15 @@
+{
+  "name": "java-to-cpp",
+  "version": "1.0.0",
+  "description": "Web UI and Node server for Java-to-C++ transpilation (native lexer/parser)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "make"
+  },
+  "keywords": ["java", "cpp", "transpiler", "flex", "bison"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

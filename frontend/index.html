@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Java → C++</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <header class="glass header">
+      <div class="brand">
+        <span class="logo">J→C</span>
+        <div>
+          <h1>Java to C++</h1>
+          <p class="tagline">Subset transpiler · Flex / Bison backend</p>
+        </div>
+      </div>
+      <button type="button" id="transpileBtn" class="btn primary">Transpile</button>
+    </header>
+
+    <main class="layout">
+      <section class="glass panel">
+        <div class="panel-head">
+          <h2>Java</h2>
+          <span class="hint">Paste or edit source</span>
+        </div>
+        <textarea id="javaInput" spellcheck="false" placeholder="// public class Example { ... }"></textarea>
+      </section>
+
+      <section class="glass panel">
+        <div class="panel-head">
+          <h2>C++</h2>
+          <button type="button" id="copyBtn" class="btn ghost" disabled>Copy</button>
+        </div>
+        <pre id="cppOutput" class="output" aria-live="polite"><code>// Output appears here after transpile.</code></pre>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
