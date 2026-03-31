@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "parser.tab.h"
 
 FILE *out;
 
@@ -80,6 +79,10 @@ static void free_str(char *s) {
 
 %type <str> expr expr_opt primary postfix unary add mul relational equality land lor assign
 %type <str> java_type_spec dotted for_step_opt for_init_opt new_array_expr
+%type <str> local_var_list_inline
+%type <str> local_var_one
+%type <str> local_var_tail
+%type <str> expr_list_inline
 
 %start program
 
