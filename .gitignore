@@ -1,3 +1,14 @@
+# build files
+*.exe
+*.c
+*.h
+out.cpp
+lex.yy.c
+parser.tab.c
+parser.tab.h
+
+# node
 node_modules/
-.env
-*.log
+
+# logs
+npm-debug.log
