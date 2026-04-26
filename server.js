@@ -24,11 +24,7 @@ const COMPILE_TIMEOUT = 20000; // 20 s for compilation
 
 // ── Middleware ────────────────────────────────────────────
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:5500",
-    "https://java-to-cpp-ruddy.vercel.app"
-  ]
+  origin: "*"
 }));
 
 app.use(express.json({ limit: "2mb" }));
