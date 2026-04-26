@@ -249,7 +249,7 @@ async transpile() {
     const body = isJava ? { javaCode: code } : { cppCode: code };
 
     try {
-      const res  = await fetch("/api/compile", {
+      const res = await fetch(`${API_BASE_URL}/api/compile`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -1,3 +1,4 @@
+const cors = require("cors");
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -22,6 +23,14 @@ const EXEC_TIMEOUT = 10000; // 10 s per-process timeout
 const COMPILE_TIMEOUT = 20000; // 20 s for compilation
 
 // ── Middleware ────────────────────────────────────────────
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5500",
+    "https://java-to-cpp-ruddy.vercel.app"
+  ]
+}));
+
 app.use(express.json({ limit: "2mb" }));
 
 // Basic security headers
