@@ -5,7 +5,7 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const ROOT = __dirname;
 const FRONTEND = path.join(ROOT, "frontend");
@@ -341,6 +341,9 @@ app.get("*", (_req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running at: http://localhost:${PORT}`);
   console.log(`[Java-to-C++ Transpiler] Listening on port ${PORT} (${NODE_ENV})`);
-  console.log(`[Transpiler binary] ${COMPILER_PATH} — exists: ${fs.existsSync(COMPILER_PATH)}`);
+  console.log(
+    `[Transpiler binary] ${COMPILER_PATH} — exists: ${fs.existsSync(COMPILER_PATH)}`
+  );
 });

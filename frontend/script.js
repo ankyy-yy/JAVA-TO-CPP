@@ -1,10 +1,7 @@
 /* ═══════════════════════════════════════════════════════
    Java-to-C++ Transpiler — Frontend Logic
    ═══════════════════════════════════════════════════════ */
-   const API_BASE_URL =
-  window.location.hostname.includes("localhost")
-    ? "http://localhost:3000"
-    : "https://java-to-cpp-1.onrender.com";
+  const API_BASE_URL = "";
 
 document.addEventListener("DOMContentLoaded", () => {
   const app = new TranspilerApp();

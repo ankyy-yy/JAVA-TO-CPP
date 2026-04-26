@@ -11,9 +11,17 @@
     "build": "make",
     "dev": "node server.js"
   },
-  "keywords": ["java", "cpp", "transpiler", "flex", "bison", "compiler"],
+  "keywords": [
+    "java",
+    "cpp",
+    "transpiler",
+    "flex",
+    "bison",
+    "compiler"
+  ],
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.6",
     "express": "^4.21.0"
   }
 }
