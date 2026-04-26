@@ -1,13 +1,17 @@
 {
-  "name": "java-to-cpp",
+  "name": "java-to-cpp-transpiler",
   "version": "1.0.0",
-  "description": "Web UI and Node server for Java-to-C++ transpilation (native lexer/parser)",
+  "description": "Web UI and Node server for Java-to-C++ transpilation (native lexer/parser via Flex/Bison)",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node server.js",
-    "build": "make"
+    "build": "make",
+    "dev": "node server.js"
   },
-  "keywords": ["java", "cpp", "transpiler", "flex", "bison"],
+  "keywords": ["java", "cpp", "transpiler", "flex", "bison", "compiler"],
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.0"

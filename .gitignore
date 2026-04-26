@@ -1,14 +1,31 @@
-# build files
-*.exe
-*.c
-*.h
-out.cpp
+# ── Build artifacts (generated, not source) ──────────────
 lex.yy.c
 parser.tab.c
 parser.tab.h
 
-# node
-node_modules/
+# ── Compiled binaries ─────────────────────────────────────
+*.exe
+j2cpp
 
-# logs
+# ── Temporary transpiler files ────────────────────────────
+.tmp_*
+out.cpp
+out_arr.cpp
+_test_out.cpp
+_test_out.exe
+_test_err.txt
+_test_tokens.txt
+_test_tree.txt
+tok.txt
+tokens.txt
+tree.txt
+*.class
+
+# ── Node ──────────────────────────────────────────────────
+node_modules/
 npm-debug.log
+.npm/
+
+# ── Misc ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
