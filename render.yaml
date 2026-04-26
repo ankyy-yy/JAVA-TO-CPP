@@ -1,22 +1,5 @@
 services:
   - type: web
     name: java-to-cpp-transpiler
-    runtime: node
-    region: oregon
+    env: docker
     plan: free
-
-    buildCommand: |
-      apt-get update -qq && \
-      apt-get install -y -qq flex bison gcc g++ make default-jdk && \
-      npm ci && \
-      make
-
-    startCommand: node server.js
-
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-
-    healthCheckPath: /
