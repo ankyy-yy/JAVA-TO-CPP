@@ -1,5 +1,5 @@
 // Focused array cases: allocation, index write/read, bounds-sized ctor.
-public class TestArray {
+public class test_array {
   public static void main(String[] args) {
     int len = 4;
     int[] xs = new int[len];

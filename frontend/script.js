@@ -1,579 +1,509 @@
-class JavaToCppConverter {
+/* ═══════════════════════════════════════════════════════
+   Java-to-C++ Transpiler — Frontend Logic
+   ═══════════════════════════════════════════════════════ */
+
+document.addEventListener("DOMContentLoaded", () => {
+  const app = new TranspilerApp();
+  app.init();
+  window.__app = app;
+});
+
+class TranspilerApp {
   constructor() {
-      this.initializeElements();
-      this.bindEvents();
+    // Code editors
+    this.javaInput = null;
+    this.cppOutput = null;
+    this.javaLineNums = null;
+    this.cppLineNums = null;
+    // Buttons
+    this.convertBtn = null;
+    this.convertText = null;
+    // Analysis tab elements
+    this.tokenBody = null;
+    this.tokenCount = null;
+    this.tokenInfo = null;
+    this.treeOutput = null;
+    this.treeInfo = null;
+    // Java compile+run elements
+    this.javaCompileOutput = null;
+    this.javaCompileStatus = null;
+    this.javaRunSection = null;
+    this.javaRunOutput = null;
+    this.javaRunBadge = null;
+    // C++ compile+run elements
+    this.cppCompileOutput = null;
+    this.cppCompileStatus = null;
+    this.cppRunSection = null;
+    this.cppRunOutput = null;
+    this.cppRunBadge = null;
+    // Stats
+    this.stats = { conversions: 0, tokens: 0, javaComp: 0, cppComp: 0 };
+  }
+
+  /* ── Initialization ──────────────────────────────────── */
+  init() {
+    this.cacheElements();
+    this.bindEvents();
+    this.loadStats();
+    this.loadExampleCode();
+    this.updateLineNumbers(this.javaInput, this.javaLineNums);
+  }
+
+  cacheElements() {
+    this.javaInput         = document.getElementById("java-input");
+    this.cppOutput         = document.getElementById("cpp-output");
+    this.javaLineNums      = document.getElementById("java-line-numbers");
+    this.cppLineNums       = document.getElementById("cpp-line-numbers");
+    this.convertBtn        = document.getElementById("convert-btn");
+    this.convertText       = document.getElementById("convert-text");
+    this.tokenBody         = document.getElementById("token-body");
+    this.tokenCount        = document.getElementById("token-count");
+    this.tokenInfo         = document.getElementById("token-info");
+    this.treeOutput        = document.getElementById("tree-output");
+    this.treeInfo          = document.getElementById("tree-info");
+    // Java
+    this.javaCompileOutput = document.getElementById("java-compile-output");
+    this.javaCompileStatus = document.getElementById("java-compile-status");
+    this.javaRunSection    = document.getElementById("java-run-section");
+    this.javaRunOutput     = document.getElementById("java-run-output");
+    this.javaRunBadge      = document.getElementById("java-run-badge");
+    // C++
+    this.cppCompileOutput  = document.getElementById("cpp-compile-output");
+    this.cppCompileStatus  = document.getElementById("cpp-compile-status");
+    this.cppRunSection     = document.getElementById("cpp-run-section");
+    this.cppRunOutput      = document.getElementById("cpp-run-output");
+    this.cppRunBadge       = document.getElementById("cpp-run-badge");
+  }
+
+  bindEvents() {
+    this.convertBtn.addEventListener("click", () => this.transpile());
+
+    document.getElementById("clear-input").addEventListener("click", () => this.clearAll());
+    document.getElementById("load-example").addEventListener("click", () => {
       this.loadExampleCode();
-      this.initializeStats();
-      this.initializeSyntaxHighlighting();
-  }    initializeElements() {
-      this.javaInput = document.getElementById('java-input');
-      this.cppOutput = document.getElementById('cpp-output');
-      this.convertBtn = document.getElementById('convert-btn');
-      this.clearInputBtn = document.getElementById('clear-input');
-      this.loadExampleBtn = document.getElementById('load-example');        this.copyOutputBtn = document.getElementById('copy-output');
-      this.downloadOutputBtn = document.getElementById('download-output');
-      this.exportReportBtn = document.getElementById('export-report');
-      this.errorMessage = document.getElementById('error-message');
-      this.successMessage = document.getElementById('success-message');
-      
-      // Execution elements
-      this.runJavaBtn = document.getElementById('run-java');
-      this.runCppBtn = document.getElementById('run-cpp');
-      this.clearJavaOutputBtn = document.getElementById('clear-java-output');
-      this.clearCppOutputBtn = document.getElementById('clear-cpp-output');        this.javaOutputDiv = document.getElementById('java-output');
-      this.cppExecutionOutputDiv = document.getElementById('cpp-execution-output');
-      
-      // Stats elements
-      this.resetStatsBtn = document.getElementById('reset-stats');
-  }    bindEvents() {
-      this.convertBtn.addEventListener('click', () => this.convertCode());
-      this.clearInputBtn.addEventListener('click', () => this.clearInput());
-      this.loadExampleBtn.addEventListener('click', () => this.loadExample());        this.copyOutputBtn.addEventListener('click', () => this.copyOutput());
-      this.downloadOutputBtn.addEventListener('click', () => this.downloadOutput());
-      this.exportReportBtn.addEventListener('click', () => this.exportConversionReport());
-      
-      // Execution event listeners
-      this.runJavaBtn.addEventListener('click', () => this.runJavaCode());
-      this.runCppBtn.addEventListener('click', () => this.runCppCode());
-      this.clearJavaOutputBtn.addEventListener('click', () => this.clearJavaOutput());
-      this.clearCppOutputBtn.addEventListener('click', () => this.clearCppOutput());
-      
-      // Stats event listeners
-      this.resetStatsBtn.addEventListener('click', () => this.resetStats());
-        // Auto-resize textareas
-      this.javaInput.addEventListener('input', () => {
-          this.autoResize(this.javaInput);
-          this.validateAndHighlightCode();
-      });
-      this.cppOutput.addEventListener('input', () => this.autoResize(this.cppOutput));
+      this.updateLineNumbers(this.javaInput, this.javaLineNums);
+      this.toast("Example loaded", "info");
+    });
+    document.getElementById("copy-output").addEventListener("click", () => this.copyOutput());
+    document.getElementById("download-output").addEventListener("click", () => this.downloadOutput());
+
+    document.getElementById("compile-java-btn").addEventListener("click", () => this.compileAndRun("java"));
+    document.getElementById("compile-cpp-btn").addEventListener("click", () => this.compileAndRun("cpp"));
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => this.switchTab(btn.dataset.tab));
+    });
+
+    this.javaInput.addEventListener("input", () => this.updateLineNumbers(this.javaInput, this.javaLineNums));
+    this.javaInput.addEventListener("scroll", () => this.syncScroll(this.javaInput, this.javaLineNums));
+    this.cppOutput.addEventListener("scroll", () => this.syncScroll(this.cppOutput, this.cppLineNums));
+
+    this.javaInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        this.transpile();
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const start = this.javaInput.selectionStart;
+        const end   = this.javaInput.selectionEnd;
+        this.javaInput.value =
+          this.javaInput.value.substring(0, start) + "    " + this.javaInput.value.substring(end);
+        this.javaInput.selectionStart = this.javaInput.selectionEnd = start + 4;
+        this.updateLineNumbers(this.javaInput, this.javaLineNums);
+      }
+    });
   }
 
-  autoResize(textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 600) + 'px';
-  }
-
+  /* ── Example Code ────────────────────────────────────── */
   loadExampleCode() {
-      // Keep this example within the supported grammar subset:
-      // - static fields, main, int, int[], new int[n], while, assignment, println(expr)
-      const exampleCode = `public class Demo {
+    this.javaInput.value = `public class Demo {
   static int n = 5;
 
-  public static void main(String[] args) {
-    int[] a = new int[n];
+  static int factorial(int num) {
+    if (num <= 1) {
+      return 1;
+    }
+    return num * factorial(num - 1);
+  }
 
+  static int sumTo(int limit) {
+    int total = 0;
+    for (int i = 1; i <= limit; i++) {
+      total += i;
+    }
+    return total;
+  }
+
+  public static void main(String[] args) {
+    // Function calls with parameters
+    int fact = factorial(5);
+    System.out.println(fact);
+
+    // String concatenation in println
+    int s = sumTo(10);
+    System.out.println("Sum 1-10 = " + s);
+
+    // Array usage
+    int[] a = new int[n];
     int i = 0;
     while (i < n) {
       a[i] = i * 2;
       i = i + 1;
     }
 
+    // Print array elements
     i = 0;
     while (i < n) {
       System.out.println(a[i]);
       i = i + 1;
     }
+
+    // If-else
+    int x = 10;
+    if (x > 5) {
+      System.out.println(x);
+    } else {
+      System.out.println(0);
+    }
   }
 }`;
-      this.javaInput.value = exampleCode;
   }
 
-  clearInput() {
-      this.javaInput.value = '';
-      this.cppOutput.value = '';
-      this.hideMessages();
-      this.clearJavaOutput();
-      this.clearCppOutput();
-  }
+  /* ── Transpile ───────────────────────────────────────── */
+  async transpile() {
+    const source = this.javaInput.value.trim();
+    if (!source) {
+      this.toast("Please enter some Java code first.", "error");
+      return;
+    }
 
-  loadExample() {
-      this.loadExampleCode();
-      this.hideMessages();
-      this.clearJavaOutput();
-      this.clearCppOutput();
-  }
+    this.setLoading(true);
 
-  async convertCode() {
-      const javaCode = this.javaInput.value.trim();
-      
-      if (!javaCode) {
-          this.showError('Please enter some Java code to convert.');
-          return;
+    try {
+      const res = await fetch("/api/transpile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Transpilation failed");
       }
 
-      this.setLoading(true);
-      this.hideMessages();
+      this.cppOutput.value = data.translatedCode || "";
+      this.updateLineNumbers(this.cppOutput, this.cppLineNums);
+      this.renderTokens(data.tokens || []);
+      this.renderParseTree(data.parseTree || "");
 
-      try {
-          // Simulate the conversion process
-          // In a real implementation, this would call your java2cpp.exe
-          const cppCode = await this.simulateConversion(javaCode);
-          this.cppOutput.value = cppCode;
-          this.showSuccess('Code converted successfully!');
-          this.incrementStat('conversions');
-      } catch (error) {
-          this.incrementStat('failures');
-          this.showError('Conversion failed: ' + error.message);
-          console.error('Conversion error:', error);
-      } finally {
-          this.setLoading(false);
+      this.stats.conversions++;
+      this.stats.tokens = (data.tokens || []).length;
+      this.saveStats();
+      this.updateStatsDisplay();
+
+      if (data.parserErrors) {
+        this.toast("Transpiled with warnings: " + data.parserErrors, "info");
+      } else {
+        this.toast("Transpilation successful!", "success");
       }
-  }    async simulateConversion(javaCode) {
-      // Real implementation calling the backend
-      try {
-          const response = await fetch('/api/transpile', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ source: javaCode }),
-          });
 
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Conversion failed');
-          }
+      this.switchTab("tokens");
 
-          const result = await response.json();
-          return result.cpp ?? '';
-      } catch (error) {
-          if (error.name === 'TypeError' && error.message.includes('fetch')) {
-              throw new Error(
-                  'Unable to reach the transpile API. Make sure `npm start` is running (POST /api/transpile).'
-              );
-          }
-          throw error;
-      }
+    } catch (err) {
+      this.toast(err.message, "error");
+      console.error("Transpile error:", err);
+    } finally {
+      this.setLoading(false);
+    }
   }
 
-  basicJavaToCppConversion(javaCode) {
-      // This is a simplified simulation of your converter's output
-      // Replace this with actual API calls to your backend
-      
-      let cppCode = javaCode;
-      
-      // Basic transformations to simulate your converter
-      cppCode = '#include <iostream>\\nusing namespace std;\\n\\n' + 
-               cppCode
-               .replace(/public class \w+\s*{/, '')
-               .replace(/public static void main\(String\[\] args\)/, 'int main()')
-               .replace(/public static (\w+)/g, '$1')
-               .replace(/System\.out\.println\(/g, 'cout << ')
-               .replace(/\);/g, ' << endl;')
-               .replace(/String/g, 'string')
-               .replace(/\s*}\s*$/, '\\n    return 0;\\n}');
+  /* ── Compile + Run (unified for Java and C++) ────────── */
+  async compileAndRun(lang) {
+    const isJava = lang === "java";
+    const code   = isJava ? this.javaInput.value.trim() : this.cppOutput.value.trim();
 
-      return cppCode;
+    if (!code) {
+      const msg = isJava
+        ? "No Java code to compile."
+        : "No C++ code to compile. Transpile first.";
+      this.toast(msg, "error");
+      return;
+    }
+
+    const btnId       = isJava ? "compile-java-btn"    : "compile-cpp-btn";
+    const btnLabel    = isJava ? "Compile &amp; Run Java" : "Compile &amp; Run C++";
+    const statusEl    = isJava ? this.javaCompileStatus : this.cppCompileStatus;
+    const compileEl   = isJava ? this.javaCompileOutput : this.cppCompileOutput;
+    const runSection  = isJava ? this.javaRunSection    : this.cppRunSection;
+    const runOutputEl = isJava ? this.javaRunOutput     : this.cppRunOutput;
+    const runBadgeEl  = isJava ? this.javaRunBadge      : this.cppRunBadge;
+
+    const btn = document.getElementById(btnId);
+    btn.disabled = true;
+    btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 2"/></svg> Compiling…`;
+
+    compileEl.textContent = isJava ? "Compiling with javac..." : "Compiling with g++ -std=c++17...";
+    compileEl.className   = "compile-output";
+    statusEl.textContent  = "";
+    statusEl.className    = "compile-status";
+    runSection.style.display = "none";
+
+    const body = isJava ? { javaCode: code } : { cppCode: code };
+
+    try {
+      const res  = await fetch("/api/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+
+      const compileData = isJava ? data.javaCompile : data.cppCompile;
+      const runData     = isJava ? data.javaRun     : data.cppRun;
+
+      // ── Compile result ──────────────────────────────
+      if (compileData.success) {
+        compileEl.textContent = compileData.output || "✅ Compilation successful";
+        compileEl.classList.add("success");
+        statusEl.textContent  = "✅ Compiled";
+        statusEl.classList.add("success");
+        if (isJava) { this.stats.javaComp++; } else { this.stats.cppComp++; }
+        this.toast(`${isJava ? "Java" : "C++"} compiled successfully!`, "success");
+      } else {
+        compileEl.textContent = compileData.error || compileData.output || "❌ Compilation failed";
+        compileEl.classList.add("error");
+        statusEl.textContent  = "❌ Compile failed";
+        statusEl.classList.add("error");
+        this.toast(`${isJava ? "Java" : "C++"} compilation failed`, "error");
+      }
+
+      // ── Run result ──────────────────────────────────
+      if (runData && runData.ran) {
+        runSection.style.display = "block";
+        const hasError  = !!runData.error;
+        const hasOutput = !!runData.output;
+
+        runOutputEl.textContent = hasOutput
+          ? runData.output
+          : (hasError ? runData.error : "(no output)");
+
+        runOutputEl.className = "run-output" + (hasError && !hasOutput ? " error" : " success");
+        runBadgeEl.textContent  = hasError && !hasOutput ? "❌ Runtime error" : "✅ Ran OK";
+        runBadgeEl.className    = "run-status-badge " + (hasError && !hasOutput ? "error" : "success");
+
+        if (hasError && hasOutput) {
+          // stderr alongside stdout — show both
+          runOutputEl.textContent = runData.output + "\n\n--- stderr ---\n" + runData.error;
+        }
+      }
+
+      this.saveStats();
+      this.updateStatsDisplay();
+
+    } catch (err) {
+      compileEl.textContent = "Network error: " + err.message;
+      compileEl.classList.add("error");
+      statusEl.textContent  = "❌ Error";
+      statusEl.classList.add("error");
+      this.toast("Request failed: " + err.message, "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg> ${btnLabel}`;
+    }
+  }
+
+  /* ── Render Tokens ───────────────────────────────────── */
+  renderTokens(tokens) {
+    this.tokenCount.textContent = tokens.length;
+
+    if (tokens.length === 0) {
+      this.tokenBody.innerHTML = `<tr class="token-placeholder"><td colspan="3">No tokens generated.</td></tr>`;
+      this.tokenInfo.textContent = "No tokens available.";
+      return;
+    }
+
+    this.tokenInfo.textContent = `${tokens.length} tokens generated by Flex lexer.`;
+
+    let html = "";
+    tokens.forEach((tok, i) => {
+      const val = this.escapeHtml(tok.value);
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${tok.type}</td>
+        <td>${val}</td>
+      </tr>`;
+    });
+
+    this.tokenBody.innerHTML = html;
+  }
+
+  /* ── Render Parse Tree ───────────────────────────────── */
+  renderParseTree(tree) {
+    if (!tree || !tree.trim()) {
+      this.treeOutput.textContent = "No parse tree generated.";
+      this.treeInfo.textContent   = "Parse tree not available.";
+      return;
+    }
+
+    this.treeInfo.textContent = "Parse tree generated by Bison parser.";
+
+    const lines = tree.split("\n");
+    let html = "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const nodeMatch  = line.match(/^(\s*├─\s*)(\w+)$/);
+      const leafMatch  = line.match(/^(\s*├─\s*)(\w+):\s*"(.*)"$/);
+      const emptyLeaf  = line.match(/^(\s*├─\s*)(\w+):\s*""$/);
+
+      if (leafMatch) {
+        html += `<span class="tree-branch">${this.escapeHtml(leafMatch[1])}</span><span class="tree-leaf">${this.escapeHtml(leafMatch[2])}</span>: <span class="tree-value">"${this.escapeHtml(leafMatch[3])}"</span>\n`;
+      } else if (emptyLeaf) {
+        html += `<span class="tree-branch">${this.escapeHtml(emptyLeaf[1])}</span><span class="tree-leaf">${this.escapeHtml(emptyLeaf[2])}</span>\n`;
+      } else if (nodeMatch) {
+        html += `<span class="tree-branch">${this.escapeHtml(nodeMatch[1])}</span><span class="tree-node">${this.escapeHtml(nodeMatch[2])}</span>\n`;
+      } else {
+        html += this.escapeHtml(line) + "\n";
+      }
+    }
+
+    this.treeOutput.innerHTML = html;
+  }
+
+  /* ── Tab Switching ───────────────────────────────────── */
+  switchTab(tabId) {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+
+    const btn     = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    const content = document.getElementById(`content-${tabId}`);
+    if (btn)     btn.classList.add("active");
+    if (content) content.classList.add("active");
+  }
+
+  /* ── Line Numbers ────────────────────────────────────── */
+  updateLineNumbers(textarea, lineNumEl) {
+    const lines = textarea.value.split("\n").length;
+    let html = "";
+    for (let i = 1; i <= lines; i++) {
+      html += i + "\n";
+    }
+    lineNumEl.textContent = html;
+  }
+
+  syncScroll(textarea, lineNumEl) {
+    lineNumEl.scrollTop = textarea.scrollTop;
+  }
+
+  /* ── Utility ─────────────────────────────────────────── */
+  clearAll() {
+    this.javaInput.value = "";
+    this.cppOutput.value = "";
+    this.updateLineNumbers(this.javaInput, this.javaLineNums);
+    this.updateLineNumbers(this.cppOutput, this.cppLineNums);
+
+    this.tokenBody.innerHTML = `<tr class="token-placeholder"><td colspan="3">No tokens yet — transpile some code first.</td></tr>`;
+    this.tokenCount.textContent = "0";
+    this.tokenInfo.textContent  = 'Click "Transpile" to generate tokens from the lexer.';
+    this.treeOutput.textContent = "No parse tree yet — transpile some code first.";
+    this.treeInfo.textContent   = 'Click "Transpile" to generate the parse tree from the parser.';
+
+    // Reset Java panel
+    this.javaCompileOutput.textContent = 'Click "Compile & Run Java" to check if the original Java code compiles with javac.';
+    this.javaCompileOutput.className   = "compile-output";
+    this.javaCompileStatus.textContent = "";
+    this.javaCompileStatus.className   = "compile-status";
+    this.javaRunSection.style.display  = "none";
+    this.javaRunOutput.textContent     = "";
+
+    // Reset C++ panel
+    this.cppCompileOutput.textContent = 'Click "Compile & Run C++" to check if the generated C++ code compiles with g++.';
+    this.cppCompileOutput.className   = "compile-output";
+    this.cppCompileStatus.textContent = "";
+    this.cppCompileStatus.className   = "compile-status";
+    this.cppRunSection.style.display  = "none";
+    this.cppRunOutput.textContent     = "";
+
+    this.toast("Cleared", "info");
   }
 
   async copyOutput() {
-      const cppCode = this.cppOutput.value;
-      
-      if (!cppCode) {
-          this.showError('No C++ code to copy.');
-          return;
-      }
-
-      try {
-          await navigator.clipboard.writeText(cppCode);
-          this.showSuccess('C++ code copied to clipboard!');
-      } catch (error) {
-          // Fallback for older browsers
-          this.cppOutput.select();
-          document.execCommand('copy');
-          this.showSuccess('C++ code copied to clipboard!');
-      }
+    const code = this.cppOutput.value;
+    if (!code) { this.toast("No C++ code to copy.", "error"); return; }
+    try {
+      await navigator.clipboard.writeText(code);
+      this.toast("Copied to clipboard!", "success");
+    } catch {
+      this.cppOutput.select();
+      document.execCommand("copy");
+      this.toast("Copied to clipboard!", "success");
+    }
   }
 
   downloadOutput() {
-      const cppCode = this.cppOutput.value;
-      
-      if (!cppCode) {
-          this.showError('No C++ code to download.');
-          return;
-      }
-
-      const blob = new Blob([cppCode], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'converted_code.cpp';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      this.showSuccess('C++ code downloaded successfully!');
+    const code = this.cppOutput.value;
+    if (!code) { this.toast("No C++ code to download.", "error"); return; }
+    const blob = new Blob([code], { type: "text/plain" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "output.cpp";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.toast("Downloaded output.cpp", "success");
   }
 
-  setLoading(isLoading) {
-      if (isLoading) {
-          this.convertBtn.classList.add('loading');
-          this.convertBtn.disabled = true;
-          this.convertBtn.querySelector('.btn-text').textContent = 'Converting...';
-      } else {
-          this.convertBtn.classList.remove('loading');
-          this.convertBtn.disabled = false;
-          this.convertBtn.querySelector('.btn-text').textContent = 'Convert to C++';
-      }
+  setLoading(loading) {
+    this.convertBtn.disabled = loading;
+    if (loading) {
+      this.convertBtn.classList.add("loading");
+      this.convertText.textContent = "Working…";
+    } else {
+      this.convertBtn.classList.remove("loading");
+      this.convertText.textContent = "Transpile";
+    }
   }
 
-  showError(message) {
-      this.hideMessages();
-      this.errorMessage.textContent = message;
-      this.errorMessage.classList.remove('hidden');
-      setTimeout(() => this.hideMessages(), 5000);
+  escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
   }
 
-  showSuccess(message) {
-      this.hideMessages();
-      this.successMessage.textContent = message;
-      this.successMessage.classList.remove('hidden');
-      setTimeout(() => this.hideMessages(), 3000);
+  /* ── Toast ───────────────────────────────────────────── */
+  toast(message, type = "info") {
+    const el = document.getElementById("toast");
+    el.textContent = message;
+    el.className   = `toast ${type}`;
+    void el.offsetWidth;
+    el.classList.remove("hidden");
+
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      el.classList.add("hidden");
+    }, 3500);
   }
 
-  hideMessages() {
-      this.errorMessage.classList.add('hidden');
-      this.successMessage.classList.add('hidden');
+  /* ── Stats Persistence ───────────────────────────────── */
+  loadStats() {
+    try {
+      const saved = localStorage.getItem("j2cpp_stats");
+      if (saved) this.stats = JSON.parse(saved);
+    } catch { /* ignore */ }
+    this.updateStatsDisplay();
   }
 
-  async runJavaCode() {
-      const javaCode = this.javaInput.value.trim();
-      
-      if (!javaCode) {
-          this.showExecutionOutput('java', 'No Java code to execute.', 'error');
-          return;
-      }
-      // Your current backend only supports transpiling, not executing.
-      this.showExecutionOutput(
-          'java',
-          'Execution is not supported in this project right now (only transpile is available).',
-          'error'
-      );
-  }
-
-  async runCppCode() {
-      const cppCode = this.cppOutput.value.trim();
-      
-      if (!cppCode) {
-          this.showExecutionOutput('cpp', 'No C++ code to execute. Convert Java code first.', 'error');
-          return;
-      }
-      // Your current backend only supports transpiling, not executing.
-      this.showExecutionOutput(
-          'cpp',
-          'Execution is not supported in this project right now (only transpile is available).',
-          'error'
-      );
-  }
-
-  async executeCode(language, code) {
-      try {
-          const response = await fetch('/api/execute', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ language, code }),
-          });
-
-          if (!response.ok) {
-              const errorData = await response.json();
-              
-              // Check if it's the "not available in deployed environment" error
-              if (errorData.error && errorData.error.includes('not available in the deployed environment')) {
-                  throw new Error('Code execution is disabled in the live demo for security reasons. Download the project to run code locally.');
-              }
-              
-              throw new Error(errorData.error || 'Execution failed');
-          }
-
-          const result = await response.json();
-          return result.output || 'Program executed successfully (no output)';
-      } catch (error) {
-          if (error.name === 'TypeError' && error.message.includes('fetch')) {
-              throw new Error('Unable to connect to execution service. This feature is available only in local development.');
-          }
-          throw error;
-      }
-  }    showExecutionOutput(language, message, type = 'info') {
-      const outputDiv = language === 'java' ? this.javaOutputDiv : this.cppExecutionOutputDiv;
-      outputDiv.textContent = message;
-      outputDiv.className = `console-content ${type}`;
-      
-      // Auto-scroll to bottom
-      const console = outputDiv.parentElement;
-      console.scrollTop = console.scrollHeight;
-  }
-
-  clearJavaOutput() {
-      this.javaOutputDiv.textContent = 'Click "Run Java" to execute the Java code';
-      this.javaOutputDiv.className = 'console-content';
-  }    clearCppOutput() {
-      this.cppExecutionOutputDiv.textContent = 'Click "Run C++" to execute the C++ code';
-      this.cppExecutionOutputDiv.className = 'console-content';
-  }
-
-  setExecutionLoading(language, isLoading) {
-      const button = language === 'java' ? this.runJavaBtn : this.runCppBtn;
-      
-      if (isLoading) {
-          button.classList.add('executing');
-          button.disabled = true;
-          button.textContent = language === 'java' ? 'Running...' : 'Compiling...';
-      } else {
-          button.classList.remove('executing');
-          button.disabled = false;
-          button.textContent = language === 'java' ? 'Run Java' : 'Run C++';
-      }
-  }
-
-  initializeStats() {
-      this.stats = {
-          conversions: parseInt(localStorage.getItem('conversions') || '0'),
-          javaExecutions: parseInt(localStorage.getItem('javaExecutions') || '0'),
-          cppExecutions: parseInt(localStorage.getItem('cppExecutions') || '0'),
-          failures: parseInt(localStorage.getItem('failures') || '0')
-      };
-      this.updateStatsDisplay();
-  }
-
-  initializeSyntaxHighlighting() {
-      // Initialize Prism.js when it's available
-      if (typeof Prism !== 'undefined') {
-          Prism.highlightAll();
-      }
-  }
-
-  applySyntaxHighlighting() {
-      // Apply syntax highlighting when Prism.js is available
-      if (typeof Prism !== 'undefined') {
-          setTimeout(() => {
-              Prism.highlightAll();
-          }, 100);
-      }
-  }
-
-  // Enhanced code validation with more detailed feedback
-  validateAndHighlightCode() {
-      const javaCode = this.javaInput.value.trim();
-      
-      if (!javaCode) return;
-      
-      try {
-          validateJavaCode(javaCode);
-          this.javaInput.style.borderColor = '#28a745';
-      } catch (error) {
-          this.javaInput.style.borderColor = '#dc3545';
-          console.warn('Code validation warning:', error.message);
-      }
-      
-      // Reset border color after 2 seconds
-      setTimeout(() => {
-          this.javaInput.style.borderColor = '';
-      }, 2000);
-  }
-
-  // Add code formatting helper
-  formatCode(code, language) {
-      if (!code) return '';
-      
-      // Basic formatting improvements
-      let formatted = code
-          .replace(/\s*{\s*/g, ' {\n    ')
-          .replace(/;\s*/g, ';\n    ')
-          .replace(/}\s*/g, '\n}\n');
-          
-      return formatted;
-  }
-
-  // Add export functionality
-  exportConversionReport() {
-      const javaCode = this.javaInput.value.trim();
-      const cppCode = this.cppOutput.value.trim();
-      
-      if (!javaCode || !cppCode) {
-          this.showError('Both Java and C++ code must be present to export.');
-          return;
-      }
-      
-      const report = `# Java to C++ Conversion Report
-Generated on: ${new Date().toLocaleString()}
-
-## Original Java Code:
-\`\`\`java
-${javaCode}
-\`\`\`
-
-## Converted C++ Code:
-\`\`\`cpp
-${cppCode}
-\`\`\`
-
-## Statistics:
-- Total Conversions: ${this.stats.conversions}
-- Java Executions: ${this.stats.javaExecutions}
-- C++ Executions: ${this.stats.cppExecutions}
-
----
-Generated by Java to C++ Converter
-`;
-      
-      const blob = new Blob([report], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'conversion_report.md';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      this.showSuccess('Conversion report exported successfully!');
+  saveStats() {
+    try { localStorage.setItem("j2cpp_stats", JSON.stringify(this.stats)); } catch { /* ignore */ }
   }
 
   updateStatsDisplay() {
-      document.getElementById('conversion-count').textContent = this.stats.conversions;
-      document.getElementById('java-executions').textContent = this.stats.javaExecutions;
-      document.getElementById('cpp-executions').textContent = this.stats.cppExecutions;
-      
-      const total = this.stats.conversions + this.stats.javaExecutions + this.stats.cppExecutions;
-      const successRate = total > 0 ? Math.round(((total - this.stats.failures) / total) * 100) : 100;
-      document.getElementById('success-rate').textContent = successRate + '%';
-  }    incrementStat(statName) {
-      this.stats[statName]++;
-      localStorage.setItem(statName, this.stats[statName].toString());
-      this.updateStatsDisplay();
-      this.animateStatCounter(statName);
+    document.getElementById("stat-conversions").textContent = this.stats.conversions;
+    document.getElementById("stat-tokens").textContent      = this.stats.tokens;
+    document.getElementById("stat-java-comp").textContent   = this.stats.javaComp;
+    document.getElementById("stat-cpp-comp").textContent    = this.stats.cppComp;
   }
-
-  resetStats() {
-      // Show confirmation dialog
-      if (confirm('Are you sure you want to reset all statistics? This action cannot be undone.')) {
-          this.stats = {
-              conversions: 0,
-              javaExecutions: 0,
-              cppExecutions: 0,
-              failures: 0
-          };
-          
-          // Clear localStorage
-          localStorage.removeItem('conversions');
-          localStorage.removeItem('javaExecutions');
-          localStorage.removeItem('cppExecutions');
-          localStorage.removeItem('failures');
-          
-          // Update display with animation
-          this.updateStatsDisplay();
-          this.animateStatsReset();
-          
-          this.showSuccess('Statistics have been reset successfully!');
-      }
-  }
-
-  animateStatsReset() {
-      const statElements = [
-          'conversion-count',
-          'java-executions', 
-          'cpp-executions',
-          'success-rate'
-      ];
-      
-      statElements.forEach((elementId, index) => {
-          const element = document.getElementById(elementId);
-          if (element) {
-              setTimeout(() => {
-                  element.style.transform = 'scale(0.8)';
-                  element.style.color = '#ef4444';
-                  setTimeout(() => {
-                      element.style.transform = 'scale(1)';
-                      element.style.color = '';
-                  }, 200);
-              }, index * 100);
-          }
-      });
-  }
-
-  animateStatCounter(statName) {
-      const elementMap = {
-          conversions: 'conversion-count',
-          javaExecutions: 'java-executions',
-          cppExecutions: 'cpp-executions'
-      };
-      
-      const element = document.getElementById(elementMap[statName]);
-      if (element) {
-          element.style.transform = 'scale(1.2)';
-          element.style.color = '#667eea';
-          setTimeout(() => {
-              element.style.transform = 'scale(1)';
-              element.style.color = '';
-          }, 300);
-      }
-  }
-}
-
-// Backend integration example (for when you implement the real backend)
-class BackendService {
-  constructor(baseUrl = 'http://localhost:3000') {
-      this.baseUrl = baseUrl;
-  }
-
-  async convertJavaToCpp(javaCode) {
-      try {
-          const response = await fetch(`${this.baseUrl}/convert`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ javaCode }),
-          });
-
-          if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Conversion failed');
-          }
-
-          const result = await response.json();
-          return result.cppCode;
-      } catch (error) {
-          if (error.name === 'TypeError' && error.message.includes('fetch')) {
-              throw new Error('Unable to connect to conversion service. Please check if the backend is running.');
-          }
-          throw error;
-      }
-  }
-}
-
-// Initialize the converter when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-  new JavaToCppConverter();
-});
-
-// Additional utility functions
-function validateJavaCode(code) {
-  // Basic validation for Java code structure
-  const hasClass = /class\s+\w+/.test(code);
-  const hasMain = /public\s+static\s+void\s+main/.test(code);
-  
-  if (!hasClass && !hasMain) {
-      throw new Error('Java code should contain either a class declaration or a main method.');
-  }
-  
-  // Check for unsupported features
-  const unsupportedFeatures = [
-      { pattern: /\.length/, message: 'Array.length property is not supported. Use fixed array sizes instead.' },
-      { pattern: /boolean\s+\w+/, message: 'Boolean type is not supported. Use int instead.' },
-      { pattern: /\[\]\s*\[\]/, message: '2D arrays are not supported. Use 1D arrays instead.' },
-      { pattern: /\w+\s*\[\s*\]\s*\[\s*\]/, message: '2D arrays are not supported. Use 1D arrays instead.' },
-      { pattern: /-\d+/, message: 'Negative number literals may not be supported in all contexts.' }
-  ];
-  
-  for (const feature of unsupportedFeatures) {
-      if (feature.pattern.test(code)) {
-          console.warn('Potentially unsupported feature:', feature.message);
-      }
-  }
-  
-  return true;
 }

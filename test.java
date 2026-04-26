@@ -1,5 +1,5 @@
 // Comprehensive subset test for the transpiler (Java → C++).
-public class Test {
+public class test {
   public static void main(String[] args) {
     int a = 7;
     int b = 3;

@@ -1,0 +1,46 @@
+├─ Program
+  ├─ ClassDecl
+    ├─ ClassName: "Demo"
+    ├─ FieldDecl
+      ├─ Type: "int"
+      ├─ Name: "n"
+      ├─ InitValue: "5"
+    ├─ Param: "args"
+    ├─ MethodDecl
+      ├─ ReturnType: "void"
+      ├─ MethodName: "main"
+      ├─ Block
+        ├─ VarName: "a"
+        ├─ VarDecl
+          ├─ Type: "vector<int>"
+        ├─ VarName: "i"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ WhileStmt
+          ├─ Condition: "i < n"
+          ├─ Block
+            ├─ ExprStmt
+              ├─ Expr: "a[i] = i*2"
+            ├─ ExprStmt
+              ├─ Expr: "i = i+1"
+        ├─ ExprStmt
+          ├─ Expr: "i = 0"
+        ├─ WhileStmt
+          ├─ Condition: "i < n"
+          ├─ Block
+            ├─ PrintStmt
+              ├─ Expr: "a[i]"
+            ├─ ExprStmt
+              ├─ Expr: "i = i+1"
+        ├─ VarName: "x"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ IfStmt
+          ├─ Condition: "x > 5"
+          ├─ Block
+            ├─ PrintStmt
+              ├─ Expr: "x"
+          ├─ ElseBranch
+          ├─ Block
+            ├─ PrintStmt
+              ├─ Expr: "0"

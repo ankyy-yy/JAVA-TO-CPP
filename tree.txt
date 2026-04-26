@@ -1,0 +1,53 @@
+├─ Program
+  ├─ ClassDecl
+    ├─ ClassName: "test"
+    ├─ Param: "args"
+    ├─ MethodDecl
+      ├─ ReturnType: "void"
+      ├─ MethodName: "main"
+      ├─ Block
+        ├─ VarName: "a"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ VarName: "b"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ VarName: "flag"
+        ├─ VarDecl
+          ├─ Type: "bool"
+        ├─ IfStmt
+          ├─ Condition: "a > b && flag"
+          ├─ Block
+            ├─ PrintStmt
+              ├─ Expr: "a-b"
+          ├─ ElseBranch
+          ├─ Block
+            ├─ PrintStmt
+              ├─ Expr: "0"
+        ├─ VarName: "sum"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ ForStmt
+          ├─ Init: "int i = 0"
+          ├─ Condition: "i < 4"
+          ├─ Step: "i++"
+          ├─ Block
+            ├─ ExprStmt
+              ├─ Expr: "sum += i"
+        ├─ PrintStmt
+          ├─ Expr: "sum"
+        ├─ VarName: "msg"
+        ├─ VarDecl
+          ├─ Type: "string"
+        ├─ PrintStmt
+          ├─ Expr: "msg"
+        ├─ VarName: "x"
+        ├─ VarDecl
+          ├─ Type: "int"
+        ├─ WhileStmt
+          ├─ Condition: "x > 7"
+          ├─ Block
+            ├─ PostDecStmt
+              ├─ Operand: "x"
+        ├─ PrintStmt
+          ├─ Expr: "x"
