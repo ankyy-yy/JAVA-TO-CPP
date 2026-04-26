@@ -1,6 +1,10 @@
 /* ═══════════════════════════════════════════════════════
    Java-to-C++ Transpiler — Frontend Logic
    ═══════════════════════════════════════════════════════ */
+   const API_BASE_URL =
+  window.location.hostname.includes("localhost")
+    ? "http://localhost:3000"
+    : "https://java-to-cpp-1.onrender.com";
 
 document.addEventListener("DOMContentLoaded", () => {
   const app = new TranspilerApp();
@@ -171,53 +175,45 @@ class TranspilerApp {
   }
 
   /* ── Transpile ───────────────────────────────────────── */
-  async transpile() {
-    const source = this.javaInput.value.trim();
-    if (!source) {
-      this.toast("Please enter some Java code first.", "error");
-      return;
-    }
+async transpile() {
+  const source = this.javaInput.value.trim();
 
-    this.setLoading(true);
-
-    try {
-      const res = await fetch("/api/transpile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Transpilation failed");
-      }
-
-      this.cppOutput.value = data.translatedCode || "";
-      this.updateLineNumbers(this.cppOutput, this.cppLineNums);
-      this.renderTokens(data.tokens || []);
-      this.renderParseTree(data.parseTree || "");
-
-      this.stats.conversions++;
-      this.stats.tokens = (data.tokens || []).length;
-      this.saveStats();
-      this.updateStatsDisplay();
-
-      if (data.parserErrors) {
-        this.toast("Transpiled with warnings: " + data.parserErrors, "info");
-      } else {
-        this.toast("Transpilation successful!", "success");
-      }
-
-      this.switchTab("tokens");
-
-    } catch (err) {
-      this.toast(err.message, "error");
-      console.error("Transpile error:", err);
-    } finally {
-      this.setLoading(false);
-    }
+  if (!source) {
+    this.toast("Please enter some Java code first.", "error");
+    return;
   }
+
+  this.setLoading(true);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/transpile`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ source }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Transpilation failed");
+    }
+
+    // ✅ Update UI
+    this.cppOutput.value = data.translatedCode || "";
+    this.renderTokens(data.tokens || []);
+    this.renderParseTree(data.parseTree || "");
+
+    this.toast("Transpilation successful!", "success");
+
+  } catch (err) {
+    console.error(err);
+    this.toast(err.message || "Error during transpilation", "error");
+  } finally {
+    this.setLoading(false);
+  }
+}
 
   /* ── Compile + Run (unified for Java and C++) ────────── */
   async compileAndRun(lang) {
